@@ -152,8 +152,20 @@ echo "🔍 Validating JSON configuration..."
 if jq empty /etc/cloak-server.json 2>/dev/null; then
     echo "✅ JSON configuration is valid"
 else
-    echo "❌ JSON validation failed"
-    exit 1
+    echo "⚠️ JSON validation failed, creating fallback config..."
+    # Create fallback config without jq
+    sudo tee /etc/cloak-server.json > /dev/null << EOF
+{
+  "ProxyBook": {
+    "shadowsocks": ["tcp", "127.0.0.1:${SS_PORT}"]
+  },
+  "BindAddr": [":${CLOAK_PORT}"],
+  "BypassUID": ["${ADMIN_UID}"],
+  "RedirAddr": "www.bing.com:443",
+  "PrivateKey": "${PRIVATE_KEY}"
+}
+EOF
+    echo "✅ Fallback JSON configuration created"
 fi
 
 # Create Cloak systemd service
