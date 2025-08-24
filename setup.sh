@@ -7,6 +7,11 @@ set -e
 
 echo "🚀 Starting Universal Outline + Cloak Installation..."
 
+# Set environment to avoid interactive prompts
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export NEEDRESTART_SUSPEND=1
+
 # Update system
 echo "📦 Updating system packages..."
 sudo apt update && sudo apt upgrade -y
