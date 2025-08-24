@@ -130,19 +130,22 @@ fi
 CLOAK_PORT="8443"
 echo "🔍 Using port $CLOAK_PORT for Cloak to avoid conflicts"
 
-# Create clean Cloak configuration using printf to avoid escape sequence issues
+# Create clean Cloak configuration
 echo "⚙️ Creating Cloak configuration..."
-sudo tee /etc/cloak-server.json > /dev/null << EOF
+cat > /tmp/cloak-config.json << EOF
 {
   "ProxyBook": {
-    "shadowsocks": ["tcp", "127.0.0.1:$SS_PORT"]
+    "shadowsocks": ["tcp", "127.0.0.1:${SS_PORT}"]
   },
-  "BindAddr": [":$CLOAK_PORT"],
-  "BypassUID": ["$ADMIN_UID"],
+  "BindAddr": [":${CLOAK_PORT}"],
+  "BypassUID": ["${ADMIN_UID}"],
   "RedirAddr": "www.bing.com:443",
-  "PrivateKey": "$PRIVATE_KEY"
+  "PrivateKey": "${PRIVATE_KEY}"
 }
 EOF
+
+# Move to final location
+sudo mv /tmp/cloak-config.json /etc/cloak-server.json
 
 # Validate JSON configuration
 echo "🔍 Validating JSON configuration..."
