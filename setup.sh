@@ -14,7 +14,7 @@ export NEEDRESTART_SUSPEND=1
 
 # Update system
 echo "📦 Updating system packages..."
-sudo apt update && sudo apt upgrade -y
+sudo apt update
 
 # Install required packages
 sudo apt install -y curl wget ufw python3 jq
