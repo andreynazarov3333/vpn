@@ -315,8 +315,8 @@ else
     ((FAILED_TESTS++))
 fi
 
-echo -n "🌐 Port 15355 (Management): "
-if sudo ss -tulpn | grep -q ":15355 "; then
+echo -n "🌐 Port 24847 (Management): "
+if sudo ss -tulpn | grep -q ":24847 "; then
     echo "✅ LISTENING"
 else
     echo "⚠️ WARNING"
@@ -362,7 +362,7 @@ echo "⚠️ LIGHTSAIL FIREWALL REMINDER:"
 echo "Add these rules in Lightsail console:"
 echo "- Custom TCP $CLOAK_PORT (Cloak obfuscation)"
 echo "- Custom TCP $SS_PORT (Shadowsocks backup)" 
-echo "- Custom TCP 15355 (Management)"
+echo "- Custom TCP 24847 (Management)"
 echo ""
 echo "💡 Save this information securely!"
 echo "🔗 Your obfuscated VPN connection uses port $CLOAK_PORT"
