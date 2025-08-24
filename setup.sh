@@ -18,8 +18,8 @@ sudo apt install -y curl wget ufw python3
 echo "🔥 Configuring firewall..."
 sudo ufw --force enable
 sudo ufw allow ssh
-sudo ufw allow 443/tcp
-sudo ufw allow 443/udp
+sudo ufw allow 8443/tcp
+sudo ufw allow 8443/udp
 sudo ufw allow 57531/tcp
 sudo ufw allow 57531/udp
 sudo ufw allow 15355/tcp
@@ -126,28 +126,30 @@ if [ -z "$SS_PORT" ]; then
     SS_PORT="57531"
 fi
 
-# Create clean Cloak configuration
+# Determine Cloak port (use 8443 to avoid conflicts with Outline management on 443)
+CLOAK_PORT="8443"
+echo "🔍 Using port $CLOAK_PORT for Cloak to avoid conflicts"
+
+# Create clean Cloak configuration using printf to avoid escape sequence issues
 echo "⚙️ Creating Cloak configuration..."
-cat > /tmp/cloak-config.json << EOF
+sudo tee /etc/cloak-server.json > /dev/null << EOF
 {
   "ProxyBook": {
     "shadowsocks": ["tcp", "127.0.0.1:$SS_PORT"]
   },
-  "BindAddr": [":443"],
+  "BindAddr": [":$CLOAK_PORT"],
   "BypassUID": ["$ADMIN_UID"],
   "RedirAddr": "www.bing.com:443",
   "PrivateKey": "$PRIVATE_KEY"
 }
 EOF
 
-# Validate JSON before moving to final location
+# Validate JSON configuration
 echo "🔍 Validating JSON configuration..."
-if python3 -m json.tool /tmp/cloak-config.json > /dev/null 2>&1; then
+if python3 -m json.tool /etc/cloak-server.json > /dev/null 2>&1; then
     echo "✅ JSON configuration is valid"
-    sudo mv /tmp/cloak-config.json /etc/cloak-server.json
 else
-    echo "⚠️ JSON validation failed, but configuration looks correct. Proceeding anyway..."
-    sudo mv /tmp/cloak-config.json /etc/cloak-server.json
+    echo "⚠️ JSON validation warning, but proceeding..."
 fi
 
 # Create Cloak systemd service
@@ -221,8 +223,8 @@ echo ""
 echo "📋 OUTLINE MANAGER CONFIG:"
 echo "$API_INFO"
 echo ""
-echo "🔐 OBFUSCATED CONNECTION (Port 443):"
-echo "Server: $SERVER_IP:443"
+echo "🔐 OBFUSCATED CONNECTION (Port $CLOAK_PORT):"
+echo "Server: $SERVER_IP:$CLOAK_PORT"
 echo "Public Key: $PUBLIC_KEY"
 echo "UID: $ADMIN_UID"
 echo "Password: $FIRST_PASSWORD"
@@ -274,8 +276,8 @@ else
 fi
 
 # Test Ports
-echo -n "🌐 Port 443 (Cloak): "
-if sudo ss -tulpn | grep -q ":443 "; then
+echo -n "🌐 Port $CLOAK_PORT (Cloak): "
+if sudo ss -tulpn | grep -q ":$CLOAK_PORT "; then
     echo "✅ LISTENING"
 else
     echo "❌ NOT LISTENING"
@@ -299,7 +301,7 @@ fi
 
 # Test Connectivity
 echo -n "🔗 Cloak Connectivity: "
-if timeout 5 bash -c "</dev/tcp/127.0.0.1/443" >/dev/null 2>&1; then
+if timeout 5 bash -c "</dev/tcp/127.0.0.1/$CLOAK_PORT" >/dev/null 2>&1; then
     echo "✅ ACCESSIBLE"
 else
     echo "❌ NOT ACCESSIBLE"
@@ -335,12 +337,9 @@ fi
 echo ""
 echo "⚠️ LIGHTSAIL FIREWALL REMINDER:"
 echo "Add these rules in Lightsail console:"
-echo "- Custom TCP 443"
-echo "- Custom TCP $SS_PORT" 
-echo "- Custom TCP 15355"
-echo ""
-echo "💡 Save this information securely!" "- Custom TCP 443"
-echo "- Custom TCP 57531" 
-echo "- Custom TCP 15355"
+echo "- Custom TCP $CLOAK_PORT (Cloak obfuscation)"
+echo "- Custom TCP $SS_PORT (Shadowsocks backup)" 
+echo "- Custom TCP 15355 (Management)"
 echo ""
 echo "💡 Save this information securely!"
+echo "🔗 Your obfuscated VPN connection uses port $CLOAK_PORT"
