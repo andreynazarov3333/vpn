@@ -27,7 +27,6 @@ sudo ufw allow 8443/tcp
 sudo ufw allow 8443/udp
 sudo ufw allow 57531/tcp
 sudo ufw allow 57531/udp
-sudo ufw allow 15355/tcp
 sudo ufw allow 24847/tcp
 
 # Check if Outline is already installed
