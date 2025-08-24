@@ -81,12 +81,14 @@ fi
 
 # Generate fresh Cloak keys
 echo "🔑 Generating fresh Cloak keys..."
-CLOAK_KEY_OUTPUT=$(ck-server -key 2>/dev/null)
-PRIVATE_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PRIVATE key" | sed 's/.*: *//' | tr -d '\r\n\t ')
-PUBLIC_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PUBLIC key" | sed 's/.*: *//' | tr -d '\r\n\t ')
+# Disable color output to avoid ANSI escape sequences
+export NO_COLOR=1
+CLOAK_KEY_OUTPUT=$(ck-server -key 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')
+PRIVATE_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PRIVATE key" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
+PUBLIC_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PUBLIC key" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
 
-UID_OUTPUT=$(ck-server -uid 2>/dev/null)
-ADMIN_UID=$(echo "$UID_OUTPUT" | grep "Your UID is:" | sed 's/.*: *//' | tr -d '\r\n\t ')
+UID_OUTPUT=$(ck-server -uid 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')
+ADMIN_UID=$(echo "$UID_OUTPUT" | grep "Your UID is:" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
 
 # Validate keys
 if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ] || [ -z "$ADMIN_UID" ]; then
@@ -95,12 +97,12 @@ if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ] || [ -z "$ADMIN_UID" ]; then
     sleep 2
     
     # Retry once
-    CLOAK_KEY_OUTPUT=$(ck-server -key 2>/dev/null)
-    PRIVATE_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PRIVATE key" | sed 's/.*: *//' | tr -d '\r\n\t ')
-    PUBLIC_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PUBLIC key" | sed 's/.*: *//' | tr -d '\r\n\t ')
+    CLOAK_KEY_OUTPUT=$(ck-server -key 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')
+    PRIVATE_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PRIVATE key" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
+    PUBLIC_KEY=$(echo "$CLOAK_KEY_OUTPUT" | grep "PUBLIC key" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
     
-    UID_OUTPUT=$(ck-server -uid 2>/dev/null)
-    ADMIN_UID=$(echo "$UID_OUTPUT" | grep "Your UID is:" | sed 's/.*: *//' | tr -d '\r\n\t ')
+    UID_OUTPUT=$(ck-server -uid 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')
+    ADMIN_UID=$(echo "$UID_OUTPUT" | grep "Your UID is:" | sed 's/.*: *//' | tr -d '\r\n\t ' | sed 's/\x1b\[[0-9;]*m//g')
     
     if [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ] || [ -z "$ADMIN_UID" ]; then
         echo "❌ Critical Error: Cannot generate valid keys"
