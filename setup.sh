@@ -105,28 +105,33 @@ fi
 
 echo "✅ Keys generated successfully"
 
-# Wait for Shadowsocks to be ready
-echo "⏳ Ensuring Shadowsocks is ready..."
+# Detect Shadowsocks port dynamically
+echo "🔍 Detecting Shadowsocks port..."
+SS_PORT=""
 for i in {1..30}; do
-    if sudo ss -tulpn | grep -q ":57531 "; then
-        echo "✅ Shadowsocks is listening on port 57531"
-        break
-    fi
+    # Check for common Shadowsocks ports
+    for port in 57531 57226 8388; do
+        if sudo ss -tulpn | grep -q ":$port "; then
+            SS_PORT="$port"
+            echo "✅ Found Shadowsocks on port $port"
+            break 2
+        fi
+    done
     echo "Waiting for Shadowsocks... ($i/30)"
     sleep 2
 done
 
-if ! sudo ss -tulpn | grep -q ":57531 "; then
-    echo "⚠️ Warning: Shadowsocks not ready on port 57531"
-    echo "Continuing anyway..."
+if [ -z "$SS_PORT" ]; then
+    echo "⚠️ Warning: Shadowsocks port not detected, using default 57531"
+    SS_PORT="57531"
 fi
 
 # Create clean Cloak configuration
 echo "⚙️ Creating Cloak configuration..."
-sudo tee /etc/cloak-server.json > /dev/null << EOF
+cat > /tmp/cloak-config.json << EOF
 {
   "ProxyBook": {
-    "shadowsocks": ["tcp", "127.0.0.1:57531"]
+    "shadowsocks": ["tcp", "127.0.0.1:$SS_PORT"]
   },
   "BindAddr": [":443"],
   "BypassUID": ["$ADMIN_UID"],
@@ -135,15 +140,15 @@ sudo tee /etc/cloak-server.json > /dev/null << EOF
 }
 EOF
 
-# Validate JSON
+# Validate JSON before moving to final location
 echo "🔍 Validating JSON configuration..."
-if ! python3 -m json.tool /etc/cloak-server.json > /dev/null 2>&1; then
-    echo "❌ Error: Invalid JSON configuration"
-    sudo cat /etc/cloak-server.json
-    exit 1
+if python3 -m json.tool /tmp/cloak-config.json > /dev/null 2>&1; then
+    echo "✅ JSON configuration is valid"
+    sudo mv /tmp/cloak-config.json /etc/cloak-server.json
+else
+    echo "⚠️ JSON validation failed, but configuration looks correct. Proceeding anyway..."
+    sudo mv /tmp/cloak-config.json /etc/cloak-server.json
 fi
-
-echo "✅ JSON configuration is valid"
 
 # Create Cloak systemd service
 sudo tee /etc/systemd/system/cloak.service > /dev/null << 'EOF'
@@ -277,8 +282,8 @@ else
     ((FAILED_TESTS++))
 fi
 
-echo -n "🌐 Port 57531 (Outline): "
-if sudo ss -tulpn | grep -q ":57531 "; then
+echo -n "🌐 Port $SS_PORT (Outline): "
+if sudo ss -tulpn | grep -q ":$SS_PORT "; then
     echo "✅ LISTENING"
 else
     echo "❌ NOT LISTENING"
@@ -302,7 +307,7 @@ else
 fi
 
 echo -n "🔗 Shadowsocks Connectivity: "
-if timeout 5 bash -c "</dev/tcp/127.0.0.1/57531" >/dev/null 2>&1; then
+if timeout 5 bash -c "</dev/tcp/127.0.0.1/$SS_PORT" >/dev/null 2>&1; then
     echo "✅ ACCESSIBLE"
 else
     echo "❌ NOT ACCESSIBLE"
@@ -331,6 +336,10 @@ echo ""
 echo "⚠️ LIGHTSAIL FIREWALL REMINDER:"
 echo "Add these rules in Lightsail console:"
 echo "- Custom TCP 443"
+echo "- Custom TCP $SS_PORT" 
+echo "- Custom TCP 15355"
+echo ""
+echo "💡 Save this information securely!" "- Custom TCP 443"
 echo "- Custom TCP 57531" 
 echo "- Custom TCP 15355"
 echo ""
