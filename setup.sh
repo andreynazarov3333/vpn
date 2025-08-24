@@ -12,7 +12,7 @@ echo "📦 Updating system packages..."
 sudo apt update && sudo apt upgrade -y
 
 # Install required packages
-sudo apt install -y curl wget ufw python3
+sudo apt install -y curl wget ufw python3 jq
 
 # Configure UFW firewall
 echo "🔥 Configuring firewall..."
@@ -130,29 +130,30 @@ fi
 CLOAK_PORT="8443"
 echo "🔍 Using port $CLOAK_PORT for Cloak to avoid conflicts"
 
-# Create clean Cloak configuration
+# Create clean Cloak configuration using jq to ensure proper JSON formatting
 echo "⚙️ Creating Cloak configuration..."
-cat > /tmp/cloak-config.json << EOF
-{
-  "ProxyBook": {
-    "shadowsocks": ["tcp", "127.0.0.1:${SS_PORT}"]
-  },
-  "BindAddr": [":${CLOAK_PORT}"],
-  "BypassUID": ["${ADMIN_UID}"],
-  "RedirAddr": "www.bing.com:443",
-  "PrivateKey": "${PRIVATE_KEY}"
-}
-EOF
-
-# Move to final location
-sudo mv /tmp/cloak-config.json /etc/cloak-server.json
+jq -n \
+  --arg ss_port "$SS_PORT" \
+  --arg cloak_port "$CLOAK_PORT" \
+  --arg admin_uid "$ADMIN_UID" \
+  --arg private_key "$PRIVATE_KEY" \
+  '{
+    "ProxyBook": {
+      "shadowsocks": ["tcp", ("127.0.0.1:" + $ss_port)]
+    },
+    "BindAddr": [(":" + $cloak_port)],
+    "BypassUID": [$admin_uid],
+    "RedirAddr": "www.bing.com:443",
+    "PrivateKey": $private_key
+  }' | sudo tee /etc/cloak-server.json > /dev/null
 
 # Validate JSON configuration
 echo "🔍 Validating JSON configuration..."
-if python3 -m json.tool /etc/cloak-server.json > /dev/null 2>&1; then
+if jq empty /etc/cloak-server.json 2>/dev/null; then
     echo "✅ JSON configuration is valid"
 else
-    echo "⚠️ JSON validation warning, but proceeding..."
+    echo "❌ JSON validation failed"
+    exit 1
 fi
 
 # Create Cloak systemd service
